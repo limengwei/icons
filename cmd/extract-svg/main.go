@@ -159,11 +159,58 @@ func toSVG(jsonStr string) (string, error) {
 	return b.String(), nil
 }
 
+// jsxAttrs maps react-icons' camelCase JSX prop names to the hyphenated
+// SVG attribute names browsers (and React's DOM output) use. Attributes not
+// listed — viewBox, baseProfile, gradientUnits and other legal camelCase SVG
+// attributes — are written verbatim.
+var jsxAttrs = map[string]string{
+	"strokeWidth":      "stroke-width",
+	"strokeLinecap":    "stroke-linecap",
+	"strokeLinejoin":   "stroke-linejoin",
+	"strokeMiterlimit": "stroke-miterlimit",
+	"strokeOpacity":    "stroke-opacity",
+	"strokeDasharray":  "stroke-dasharray",
+	"strokeDashoffset": "stroke-dashoffset",
+	"fillOpacity":      "fill-opacity",
+	"fillRule":         "fill-rule",
+	"clipRule":         "clip-rule",
+	"clipPath":         "clip-path",
+	"stopColor":        "stop-color",
+	"stopOpacity":      "stop-opacity",
+	"fontFamily":       "font-family",
+	"fontSize":         "font-size",
+	"fontWeight":       "font-weight",
+	"textAnchor":       "text-anchor",
+	"letterSpacing":    "letter-spacing",
+	"wordSpacing":      "word-spacing",
+	"textDecoration":   "text-decoration",
+	"dominantBaseline": "dominant-baseline",
+	"markerEnd":        "marker-end",
+	"markerStart":      "marker-start",
+	"markerMid":        "marker-mid",
+	"paintOrder":       "paint-order",
+	"vectorEffect":     "vector-effect",
+	"xmlnsXlink":       "xmlns:xlink",
+	"xlinkHref":        "xlink:href",
+}
+
 func writeNode(b *strings.Builder, n *node, isRoot bool) {
 	b.WriteByte('<')
 	b.WriteString(n.Tag)
 	if isRoot {
 		b.WriteString(` xmlns="http://www.w3.org/2000/svg"`)
+		// react-icons' IconBase hardcodes these on the root svg; children
+		// override per element. Without them, fill="none" stroke-based
+		// icons (io5 outline and friends) render invisible.
+		if _, ok := n.Attr["fill"]; !ok {
+			n.Attr["fill"] = "currentColor"
+		}
+		if _, ok := n.Attr["stroke"]; !ok {
+			n.Attr["stroke"] = "currentColor"
+		}
+		if _, ok := n.Attr["strokeWidth"]; !ok {
+			n.Attr["strokeWidth"] = "0"
+		}
 	}
 	keys := make([]string, 0, len(n.Attr))
 	for k := range n.Attr {
@@ -171,7 +218,11 @@ func writeNode(b *strings.Builder, n *node, isRoot bool) {
 	}
 	sort.Strings(keys)
 	for _, k := range keys {
-		fmt.Fprintf(b, ` %s="%s"`, k, xmlEscape(n.Attr[k]))
+		name := k
+		if svg, ok := jsxAttrs[k]; ok {
+			name = svg
+		}
+		fmt.Fprintf(b, ` %s="%s"`, name, xmlEscape(n.Attr[k]))
 	}
 	if len(n.Child) == 0 {
 		b.WriteString("/>")
