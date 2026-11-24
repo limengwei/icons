@@ -13,8 +13,12 @@ import (
 
 // Deps carries what the UI needs from main.
 type Deps struct {
-	DS   *dataset.Dataset
+	DS *dataset.Dataset
+	// Port is the MCP HTTP port the running servers answer on.
 	Port int
+	// ReleaseSingleton frees the single-instance lock, so an in-app restart
+	// can take it over.
+	ReleaseSingleton func()
 }
 
 // Main renders the whole app window content.
@@ -87,6 +91,7 @@ func Main(cx *core.Scope, deps *Deps) core.Node {
 		core.Show{When: settingsOpenSig.Get, Then: func(cx *core.Scope) core.Node {
 			return settingsPanel(cx, settingsState{
 				st: cfg, ds: ds, toaster: toaster,
+				release: deps.ReleaseSingleton,
 				onSaved: func(int) { settingsOpenSig.Set(false) },
 			})
 		}},
