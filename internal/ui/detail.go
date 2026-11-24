@@ -10,7 +10,6 @@ import (
 
 	"reacticons/internal/dataset"
 	"reacticons/internal/exporter"
-	"reacticons/internal/render"
 	"reacticons/internal/settings"
 )
 
@@ -18,16 +17,17 @@ import (
 type detailState struct {
 	icon    *core.Signal[dataset.Icon]
 	ds      *dataset.Dataset
-	cache   *render.Cache
+	svgs    *svgCache
 	toaster *ui.Toaster
 	onClose func()
 }
 
-// Detail-panel parameters: the preview rasterizes at 128px in the selected
-// color; the palette starts on the grid's thumbnail color so both match.
+// Detail-panel parameters: previewSize is the default PNG export size, and the
+// palette starts on the grid's thumbnail color so both match.
 const (
 	previewSize  = 128
-	previewColor = gridColor
+	previewColor = "#E5E5E5"
+	previewBox   = 192
 )
 
 // paletteColors are the preset swatches offered for recoloring the icon.
@@ -45,7 +45,6 @@ var exportSizes = []int{16, 32, 48, 64, 128, 256, 512}
 func detailPanel(cx *core.Scope, s detailState) core.Node {
 	colorSig := core.NewSignal(cx, previewColor)
 	sizeSig := core.NewSignal(cx, previewSize)
-	refreshSig := core.NewSignal(cx, 0) // bumped when a preview rasterization lands
 	// The panel edits its own settings copy: exports update LastSaveDir and
 	// save it back so the next save dialog starts in the same folder.
 	st, _ := settings.Load()
@@ -91,24 +90,23 @@ func detailPanel(cx *core.Scope, s detailState) core.Node {
 
 		// Body.
 		core.View{Class: "flex-1 min-h-0 overflow-y-auto p-4 gap-4 flex-col", Children: []core.Node{
-			// Large preview, rasterized in the background at previewSize in
-			// the selected color.
+			// Large vector preview: core.Icon redraws the SVG at the box size
+			// in the selected color (fill="currentColor" inherits it).
 			core.View{Class: "flex-row justify-center", Children: []core.Node{
 				core.View{Style: core.Style{Width: core.Pt(224), Height: core.Pt(224), CornerRadius: 12,
 					Background: core.RGB(0x1c1c1e), AlignItems: core.AlignCenter, JustifyContent: core.JustifyCenter}, Children: []core.Node{
-					core.Image{
-						SourceFunc: func() core.ImageSource {
-							refreshSig.Get() // depend on rasterization arrivals
+					core.Icon{
+						SVGFunc: func() *core.SVG {
 							ic := s.icon.Get()
-							key := fmt.Sprintf("%s|%s|%d|%s", ic.Set, ic.Name, previewSize, colorSig.Get())
-							if img, ok := s.cache.Get(key); ok {
-								return core.ImageSource{Pixels: img, Size: core.Size{Width: core.Points(img.Bounds().Dx()), Height: core.Points(img.Bounds().Dy())}}
-							}
-							startPreviewRasterize(cx, s, refreshSig, key, ic, colorSig.Get())
-							return core.ImageSource{}
+							return iconSVG(s.ds, s.svgs, ic.Set, ic.Name)
 						},
-						ResizeMode: core.Contain,
-						Style:      core.Style{Width: core.Pct(100), Height: core.Pct(100)},
+						StyleFunc: func() core.Style {
+							col, err := core.ParseColor(colorSig.Get())
+							if err != nil {
+								col = core.RGB(0xe5e5e5)
+							}
+							return core.Style{Width: core.Pt(previewBox), Height: core.Pt(previewBox), Color: col}
+						},
 					},
 				}},
 			}},
@@ -190,37 +188,6 @@ func detailPanel(cx *core.Scope, s detailState) core.Node {
 			}},
 		}},
 	}}
-}
-
-// startPreviewRasterize renders the detail preview in the background and
-// bumps refresh when the image lands in the cache, deduplicating through the
-// same in-flight map as the grid.
-func startPreviewRasterize(cx *core.Scope, s detailState, refresh *core.Signal[int], key string, ic dataset.Icon, color string) {
-	inFlightMu.Lock()
-	if inFlight[key] {
-		inFlightMu.Unlock()
-		return
-	}
-	inFlight[key] = true
-	inFlightMu.Unlock()
-
-	go func() {
-		defer func() {
-			inFlightMu.Lock()
-			delete(inFlight, key)
-			inFlightMu.Unlock()
-		}()
-		svg, err := s.ds.GetSVG(ic.Set, ic.Name)
-		if err != nil {
-			return
-		}
-		img, err := render.Rasterize(svg, previewSize, color)
-		if err != nil {
-			return
-		}
-		s.cache.Put(key, img)
-		cx.Post(func() { refresh.Set(refresh.Get() + 1) })
-	}()
 }
 
 // swatchButtons renders the palette as small pressable color chips with the

@@ -1,14 +1,13 @@
-// Package render rasterizes SVG icons to pixel images and caches recently
-// rendered icons in a thread-safe LRU cache.
+// Package render rasterizes SVG icons to pixel images for PNG export and
+// clipboard copies; the on-screen UI draws SVGs as vectors (core.Icon) and
+// does not rasterize.
 package render
 
 import (
-	"container/list"
 	"fmt"
 	"image"
 	"regexp"
 	"strings"
-	"sync"
 
 	"github.com/srwiley/oksvg"
 	"github.com/srwiley/rasterx"
@@ -87,60 +86,4 @@ func applyColor(svg, color string) string {
 		}
 		return tag[:len(tag)-1] + ` fill="` + color + `">`
 	})
-}
-
-// Cache is a thread-safe LRU cache of rasterized icon images.
-type Cache struct {
-	mu       sync.Mutex
-	capacity int
-	ll       *list.List // front = most recently used
-	items    map[string]*list.Element
-}
-
-type cacheEntry struct {
-	key string
-	img *image.RGBA
-}
-
-// NewCache returns an LRU cache holding at most capacity images.
-func NewCache(capacity int) *Cache {
-	return &Cache{
-		capacity: capacity,
-		ll:       list.New(),
-		items:    make(map[string]*list.Element),
-	}
-}
-
-// Get returns the cached image for key and reports whether it was present.
-// A present key is promoted to most recently used.
-func (c *Cache) Get(key string) (*image.RGBA, bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	el, ok := c.items[key]
-	if !ok {
-		return nil, false
-	}
-	c.ll.MoveToFront(el)
-	return el.Value.(*cacheEntry).img, true
-}
-
-// Put stores img under key (updating it if already cached) and evicts the
-// least recently used entries once the capacity is exceeded.
-func (c *Cache) Put(key string, img *image.RGBA) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if el, ok := c.items[key]; ok {
-		c.ll.MoveToFront(el)
-		el.Value.(*cacheEntry).img = img
-		return
-	}
-	c.items[key] = c.ll.PushFront(&cacheEntry{key: key, img: img})
-	for c.ll.Len() > c.capacity {
-		oldest := c.ll.Back()
-		if oldest == nil {
-			return
-		}
-		c.ll.Remove(oldest)
-		delete(c.items, oldest.Value.(*cacheEntry).key)
-	}
 }

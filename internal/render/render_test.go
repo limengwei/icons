@@ -1,9 +1,7 @@
 package render
 
 import (
-	"fmt"
 	"image"
-	"sync"
 	"testing"
 )
 
@@ -128,67 +126,5 @@ func TestRasterizeErrors(t *testing.T) {
 	}
 	if _, err := Rasterize(`<svg><path d="M`, 32, ""); err == nil {
 		t.Fatal("malformed svg: want error, got nil")
-	}
-}
-
-func TestCacheLRU(t *testing.T) {
-	img1 := image.NewRGBA(image.Rect(0, 0, 1, 1))
-	img2 := image.NewRGBA(image.Rect(0, 0, 2, 2))
-	img3 := image.NewRGBA(image.Rect(0, 0, 3, 3))
-
-	c := NewCache(2)
-	c.Put("a", img1)
-	c.Put("b", img2)
-	if got, ok := c.Get("a"); !ok || got != img1 {
-		t.Fatalf("Get(a) after two puts = %v,%v; want %v,true", got, ok, img1)
-	}
-	// "a" was just used, so "b" is the least recently used and gets evicted.
-	c.Put("c", img3)
-	if _, ok := c.Get("b"); ok {
-		t.Fatal("Get(b) after eviction: want miss, got hit")
-	}
-	if got, ok := c.Get("a"); !ok || got != img1 {
-		t.Fatalf("Get(a) after eviction = %v,%v; want %v,true", got, ok, img1)
-	}
-	if got, ok := c.Get("c"); !ok || got != img3 {
-		t.Fatalf("Get(c) = %v,%v; want %v,true", got, ok, img3)
-	}
-
-	// Putting an existing key updates its value without evicting others.
-	c.Put("a", img3)
-	if got, ok := c.Get("a"); !ok || got != img3 {
-		t.Fatalf("Get(a) after update = %v,%v; want %v,true", got, ok, img3)
-	}
-	if _, ok := c.Get("c"); !ok {
-		t.Fatal("Get(c) after updating a: want hit, got miss")
-	}
-
-	// Keys never stored are misses.
-	if _, ok := c.Get("missing"); ok {
-		t.Fatal("Get(missing): want miss, got hit")
-	}
-}
-
-func TestCacheConcurrent(t *testing.T) {
-	c := NewCache(8)
-	base := image.NewRGBA(image.Rect(0, 0, 4, 4))
-	var wg sync.WaitGroup
-	for g := 0; g < 8; g++ {
-		wg.Add(1)
-		go func(g int) {
-			defer wg.Done()
-			for i := 0; i < 300; i++ {
-				key := fmt.Sprintf("k%d", (g+i)%8)
-				c.Get(key)
-				c.Put(key, base)
-			}
-		}(g)
-	}
-	wg.Wait()
-	// 8 distinct keys, capacity 8: all must still be cached and non-nil.
-	for i := 0; i < 8; i++ {
-		if got, ok := c.Get(fmt.Sprintf("k%d", i)); !ok || got == nil {
-			t.Fatalf("Get(k%d) after concurrent writes = %v,%v; want non-nil,true", i, got, ok)
-		}
 	}
 }

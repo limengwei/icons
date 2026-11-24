@@ -8,7 +8,6 @@ import (
 	"github.com/nsgo-dev/nsgo/ui"
 
 	"reacticons/internal/dataset"
-	"reacticons/internal/render"
 	"reacticons/internal/settings"
 )
 
@@ -29,9 +28,8 @@ func Main(cx *core.Scope, deps *Deps) core.Node {
 	detailSig := core.NewSignal(cx, dataset.Icon{})
 	detailOpenSig := core.NewSignal(cx, false)
 	settingsOpenSig := core.NewSignal(cx, false)
-	refreshSig := core.NewSignal(cx, 0) // bumped when a rasterization lands
 	toaster := ui.NewToaster(cx)
-	renderCache := render.NewCache(4096)
+	svgs := newSVGCache(4096)
 
 	// --- search (in-memory index, ~ms: synchronous, no goroutine) ---
 	runSearch := func() {
@@ -71,18 +69,18 @@ func Main(cx *core.Scope, deps *Deps) core.Node {
 				onSettings: func() { settingsOpenSig.Set(true) },
 			}),
 			iconGrid(cx, gridState{
-				results: resultSig, refresh: refreshSig,
+				results: resultSig,
 				onOpen: func(ic dataset.Icon) {
 					detailSig.Set(ic)
 					detailOpenSig.Set(true)
 				},
-				ds: ds, cache: renderCache,
+				ds: ds, svgs: svgs,
 			}),
 			statusBar(cx, statusState{results: resultSig, version: ds.Version(), port: deps.Port}),
 		}},
 		core.Show{When: detailOpenSig.Get, Then: func(cx *core.Scope) core.Node {
 			return detailPanel(cx, detailState{
-				icon: detailSig, ds: ds, cache: renderCache, toaster: toaster,
+				icon: detailSig, ds: ds, svgs: svgs, toaster: toaster,
 				onClose: closeDetail,
 			})
 		}},
