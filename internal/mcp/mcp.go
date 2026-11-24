@@ -246,7 +246,7 @@ func errorResult(text string) *mcp.CallToolResult {
 }
 
 // ServeHTTP runs the MCP streamable HTTP server on addr (e.g.
-// "127.0.0.1:8300") under /mcp until the process exits. It is meant to run
+// "127.0.0.1:9393") under /mcp until the process exits. It is meant to run
 // in a goroutine next to the desktop UI.
 func ServeHTTP(addr string, ds *dataset.Dataset) error {
 	handler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return New(ds) }, nil)

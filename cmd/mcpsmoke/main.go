@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	url := flag.String("url", "http://127.0.0.1:8300/mcp", "streamable HTTP endpoint")
+	url := flag.String("url", "http://127.0.0.1:9393/mcp", "streamable HTTP endpoint")
 	flag.Parse()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

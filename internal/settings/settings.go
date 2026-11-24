@@ -10,7 +10,7 @@ import (
 )
 
 // DefaultMCPPort is the MCP HTTP port used when settings carry no valid one.
-const DefaultMCPPort = 8300
+const DefaultMCPPort = 9393
 
 // Settings holds user preferences.
 type Settings struct {
