@@ -1,7 +1,7 @@
 # icons 的 nsgo 工具配置（go tool nsgo dev / build 使用；
 # 纯 go build 会忽略此文件）。
 name: icons
-id: dev.mindspace.icons
+id: limengwei.mindspace.icons
 version: 1.0.0
 copyright: © 2026 icons
 appearance: dark
@@ -17,6 +17,10 @@ dev:
 # 终端可直接运行 `icons --mcp`（stdio MCP 模式）
 windows:
   command_line: true
+
+# 发布仓库：构建附带 install.ps1 / install.sh 安装脚本
+release:
+  github: limengwei/icons
 
 build:
   output: dist
