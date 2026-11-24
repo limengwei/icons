@@ -115,7 +115,7 @@ func main() {
 
 	nsgo.Run(func(app *core.Scope) {
 		win := desktop.OpenWindow(app, desktop.WindowOptions{
-			Title: "icons", Width: 1280, Height: 800, Key: "main",
+			Title: "icons · UI图标库", Width: 1280, Height: 800, Key: "main",
 		}, func(cx *core.Scope) core.Node {
 			if ds == nil {
 				return core.View{Class: "w-full h-full flex-row items-center justify-center bg-neutral-950 text-neutral-100", Children: []core.Node{
