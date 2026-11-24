@@ -1,0 +1,14 @@
+# 构建产物
+*.exe
+dist/
+
+# 数据源大文件（可再生的 SVG 源副本，见 cmd/extract-svg 与 cmd/prepare）
+# 注意：internal/dataset/data 是编译必需的内置数据，需保留在版本库中
+data/
+
+# IDE/工程元数据
+.trae/
+
+# 日志与截图
+*.log
+.screenshots/
