@@ -81,5 +81,5 @@ Windows CI 每次推送通过 `go tool nsgo build` 构建 NSIS 安装包，并�
 
 ## 许可
 
-- 代码：本项目自有版权
+- 代码：[MIT](LICENSE) © 2026 limengwei
 - 图标：react-icons 各集合遵循各自许可（MIT / CC BY / SIL OFL / Apache 2.0，应用内「设置 → 数据来源」可查看集合列表）

@@ -81,5 +81,5 @@ Windows CI builds an NSIS installer via `go tool nsgo build` on every push and p
 
 ## License
 
-- Code: this project's own copyright
+- Code: [MIT](LICENSE) © 2026 limengwei
 - Icons: each react-icons set carries its own license (MIT / CC BY / SIL OFL / Apache 2.0 — see the set list in-app under *Settings → Data source*)
