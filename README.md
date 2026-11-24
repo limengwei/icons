@@ -2,16 +2,16 @@
   <img src="icon.png" alt="icons" width="128" height="128">
 </p>
 
-<h1 align="center">icons</h1>
+<h1 align="center">icons · UI图标库</h1>
 
-<p align="center">English | <a href="README_CN.md">中文</a></p>
+<p align="center">中文 | <a href="README_EN.md">English</a></p>
 
 <p align="center">
-A desktop browser and search tool for the entire <a href="https://github.com/react-icons/react-icons">react-icons</a> library — 50,934 vector icons across 31 sets, fully embedded in a single executable.<br>
-Built-in MCP server for AI assistant integration.
+基于 <a href="https://github.com/react-icons/react-icons">react-icons</a> 的桌面图标浏览器与检索工具——31 个图标集、50,934 个矢量图标，全部内嵌于单个可执行文件。<br>
+内置 MCP 服务器，可接入 AI 助手使用。
 </p>
 
-## Screenshots
+## 截图
 
 <p align="center">
   <img src="screenshot/icons-01.png" width="80%">
@@ -20,42 +20,42 @@ Built-in MCP server for AI assistant integration.
   <img src="screenshot/icons-02.png" width="80%">
 </p>
 
-## Features
+## 功能特性
 
-- **Icon Browsing** — Virtual-scrolling grid with vector rendering (sharp at any size/DPI); all icons are compiled into the binary, no downloads, no first-launch setup
-- **Instant Search** — Debounced substring search over icon names and set keywords, with results capped and hinted past 10,000 rows
-- **Set Sidebar** — All 31 icon sets (Font Awesome 6, Material Design, Tabler, Phosphor, Grommet, …) with live counts
-- **Detail & Export** — Zoomed preview on a checkerboard, one-click SVG copy, PNG export and clipboard copy at any size and color
-- **MCP Server** — Embedded MCP server (stdio + HTTP) for AI tools to search, fetch SVG and render PNG icons
-- **Tray Resident** — Closing the window minimizes to the system tray; the MCP server keeps running. Single instance via a TCP port lock
+- **图标浏览** — 虚拟滚动网格 + 矢量渲染（任意缩放与 DPI 下清晰）；全部图标编译进二进制，无需下载，无首次部署
+- **即时搜索** — 图标名与集合关键词的防抖子串搜索；结果超过 10,000 行时截断并在状态栏提示
+- **集合侧栏** — 全部 31 个图标集（Font Awesome 6、Material Design、Tabler、Phosphor、Grommet 等）及实时数量
+- **详情与导出** — 棋盘格放大预览、SVG 一键复制、任意尺寸与颜色的 PNG 导出与剪贴板复制
+- **MCP 服务** — 内嵌 MCP 服务器（stdio + HTTP），供 AI 工具检索图标、获取 SVG、渲染 PNG
+- **托盘常驻** — 关闭窗口最小化到系统托盘，MCP 服务后台继续运行；TCP 端口锁保证单实例
 
-## Tech Stack
+## 技术栈
 
-| Layer | Technology |
-|-------|-----------|
-| Language | Go |
-| Desktop Framework | [nsgo](https://github.com/nsgo-dev/nsgo) (dark appearance, tray) |
-| Dataset | [react-icons](https://github.com/react-icons/react-icons) v5.7.0, embedded (gzip JSON per set) |
+| 层 | 技术 |
+|----|------|
+| 语言 | Go |
+| 桌面框架 | [nsgo](https://github.com/nsgo-dev/nsgo)（暗色外观、托盘） |
+| 数据集 | [react-icons](https://github.com/react-icons/react-icons) v5.7.0，内嵌（按集合 gzip JSON） |
 | MCP | [modelcontextprotocol/go-sdk](https://github.com/modelcontextprotocol/go-sdk) |
 
-## MCP Integration
+## MCP 集成
 
-The embedded MCP HTTP server starts automatically (default port 9393, changeable in settings). Alternatively, run `icons --mcp` for a standalone stdio server.
+内嵌 MCP HTTP 服务器随应用自动启动（默认端口 9393，可在设置中修改）。也可以运行 `icons --mcp` 启动独立的 stdio 服务器。
 
-**Closing the window does not quit the app**: it minimizes to the system tray and keeps serving MCP. Click the tray icon to restore the window; the tray right-click menu offers *Show* / *Quit*.
+**关闭窗口不会退出应用**：最小化到系统托盘并继续提供 MCP 服务。点击托盘图标恢复窗口，右键菜单提供「显示窗口 / 退出」。
 
-### Available Tools
+### 可用工具
 
-| Tool | Description |
-|------|-------------|
-| `list_sets` | List all icon sets (fa6, ri, tb, …) with icon counts and the react-icons version |
-| `search_icons` | Search icons by keyword (name + set keywords), optionally filtered by set; returns up to 100 with the total count |
-| `get_icon_svg` | Get an icon's raw SVG markup, optionally injecting a CSS color into the root `fill` |
-| `export_icon_png` | Render an icon to PNG (base64), custom size (default 256) and color |
+| 工具 | 说明 |
+|------|------|
+| `list_sets` | 列出所有图标集（fa6、ri、tb 等）、图标总数与 react-icons 版本 |
+| `search_icons` | 按关键词搜索图标（图标名 + 集合关键词），可按集合过滤；最多返回 100 条，附未截断总数 |
+| `get_icon_svg` | 获取图标原始 SVG 标记，可选注入 CSS 颜色到根 `fill` |
+| `export_icon_png` | 渲染图标为 PNG（base64 返回），可指定尺寸（默认 256）与颜色 |
 
-### Client Configuration
+### 客户端配置
 
-Add to your MCP client config (e.g. Claude Desktop, Cursor):
+添加到 MCP 客户端配置（如 Claude Desktop、Cursor）：
 
 ```json
 {
@@ -67,19 +67,19 @@ Add to your MCP client config (e.g. Claude Desktop, Cursor):
 }
 ```
 
-## Build & Development
+## 构建与开发
 
 ```bash
-go tool nsgo dev            # dev run (hot reload of the app)
-go tool nsgo build          # release build -> dist/releases/
+go tool nsgo dev            # 开发运行
+go tool nsgo build          # 发布构建 -> dist/releases/
 go test ./internal/...
 ```
 
-Plain `go build` also works; the icon resource comes from `rsrc_windows_amd64.syso`.
+纯 `go build` 也可用；图标资源来自 `rsrc_windows_amd64.syso`。
 
-Windows CI builds an NSIS installer via `go tool nsgo build` on every push and publishes it on `v*` tags (see [.github/workflows/build-windows.yml](.github/workflows/build-windows.yml)).
+Windows CI 每次推送通过 `go tool nsgo build` 构建 NSIS 安装包，并在 `v*` 标签上发布（见 [.github/workflows/build-windows.yml](.github/workflows/build-windows.yml)）。
 
-## License
+## 许可
 
-- Code: [MIT](LICENSE) © 2026 limengwei
-- Icons: each react-icons set carries its own license (MIT / CC BY / SIL OFL / Apache 2.0 — see the set list in-app under *Settings → Data source*)
+- 代码：[MIT](LICENSE) © 2026 limengwei
+- 图标：react-icons 各集合遵循各自许可（MIT / CC BY / SIL OFL / Apache 2.0，应用内「设置 → 数据来源」可查看集合列表）
