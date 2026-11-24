@@ -13,6 +13,11 @@ icon:
 dev:
   target: native
 
+# 安装 <name>.com 控制台伴随程序并把安装目录加入用户 Path，
+# 终端可直接运行 `icons --mcp`（stdio MCP 模式）
+windows:
+  command_line: true
+
 build:
   output: dist
   targets: [windows_x64]
