@@ -3,6 +3,8 @@ package ui
 import (
 	"fmt"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/nsgo-dev/nsgo/core"
@@ -36,18 +38,37 @@ var paletteColors = []string{
 	"#2196F3", "#00BCD4", "#009688", "#4CAF50", "#FFC107", "#FF9800", "#795548",
 }
 
+// bgOptions are the preview backgrounds (preview-only, never exported):
+// "" is the transparency checkerboard, else a solid hex color.
+var bgOptions = []struct{ Label, Value string }{
+	{"透明", ""},
+	{"黑", "#000000"},
+	{"白", "#FFFFFF"},
+}
+
 // exportSizes are the pixel sizes offered for PNG export.
-var exportSizes = []int{16, 32, 48, 64, 128, 256, 512}
+var exportSizes = []int{16, 32, 64, 128, 256, 512}
 
 // detailPanel shows one icon large with its metadata, a recoloring palette
 // and copy/export actions. Exports go through the system save dialog
 // (cx.SaveFile), remembering the last folder saved in.
 func detailPanel(cx *core.Scope, s detailState) core.Node {
 	colorSig := core.NewSignal(cx, previewColor)
+	hexSig := core.NewSignal(cx, previewColor) // color as typed in the hex field
+	bgSig := core.NewSignal(cx, "")            // "": checkerboard, else solid hex
 	sizeSig := core.NewSignal(cx, previewSize)
 	// The panel edits its own settings copy: exports update LastSaveDir and
 	// save it back so the next save dialog starts in the same folder.
 	st, _ := settings.Load()
+
+	// onHex applies a typed color when it parses as #RRGGBB (with or without
+	// the leading #); anything else leaves the color untouched.
+	onHex := func(v string) {
+		hexSig.Set(v)
+		if c := normalizeHex(v); c != "" {
+			colorSig.Set(c)
+		}
+	}
 
 	// svgNow returns the icon's raw SVG, toasting and reporting false when
 	// the dataset cannot serve it.
@@ -88,111 +109,112 @@ func detailPanel(cx *core.Scope, s detailState) core.Node {
 			ui.Button{Text: "关闭", OnPress: s.onClose},
 		}},
 
-		// Body.
-		core.View{Class: "flex-1 min-h-0 overflow-y-auto p-4 gap-4 flex-col", Children: []core.Node{
-			// Large vector preview: core.Icon redraws the SVG at the box size
-			// in the selected color (fill="currentColor" inherits it).
-			core.View{Class: "flex-row justify-center", Children: []core.Node{
-				core.View{Style: core.Style{Width: core.Pt(224), Height: core.Pt(224), CornerRadius: 12,
-					Background: core.RGB(0x1c1c1e), AlignItems: core.AlignCenter, JustifyContent: core.JustifyCenter}, Children: []core.Node{
-					core.Icon{
-						SVGFunc: func() *core.SVG {
-							ic := s.icon.Get()
-							return iconSVG(s.ds, s.svgs, ic.Set, ic.Name)
-						},
+		// Body, scrolling vertically when the content outgrows the panel:
+		// ui.ScrollView (a core.Scroll) is what actually scrolls — a plain
+		// View with OverflowScroll only clips.
+		ui.ScrollView{
+			Style:        core.Style{Width: core.Pct(100)},
+			ContentStyle: core.Style{Padding: core.All(16), Gap: 16},
+			EdgeColor:    func() core.Color { return core.RGB(0x171717) },
+			Children: []core.Node{
+				// Large vector preview: the background is the transparency
+				// checkerboard ("透明") or a solid black/white fill, preview-only —
+				// exports never carry it. The icon is positioned absolute over
+				// the background, fitted and centered, colored by
+				// fill="currentColor".
+				core.View{Class: "flex-row justify-center", Children: []core.Node{
+					core.View{Style: core.Style{Width: core.Pt(224), Height: core.Pt(224), Position: core.Relative,
+						AlignItems: core.AlignCenter, JustifyContent: core.JustifyCenter},
 						StyleFunc: func() core.Style {
-							col, err := core.ParseColor(colorSig.Get())
-							if err != nil {
-								col = core.RGB(0xe5e5e5)
+							if bgSig.Get() == "" {
+								return core.Style{}
 							}
-							return core.Style{Width: core.Pt(previewBox), Height: core.Pt(previewBox), Color: col}
-						},
-					},
+							col, err := core.ParseColor(bgSig.Get())
+							if err != nil {
+								return core.Style{}
+							}
+							return core.Style{Background: col}
+						}, Children: []core.Node{
+							core.Show{When: func() bool { return bgSig.Get() == "" }, Then: func(cx *core.Scope) core.Node {
+								return core.SVGView{
+									SVG:   previewChecker,
+									Style: core.Style{Width: core.Pct(100), Height: core.Pct(100)},
+								}
+							}},
+							core.Icon{
+								SVGFunc: func() *core.SVG {
+									ic := s.icon.Get()
+									return iconSVG(s.ds, s.svgs, ic.Set, ic.Name)
+								},
+								StyleFunc: func() core.Style {
+									col, err := core.ParseColor(colorSig.Get())
+									if err != nil {
+										col = core.RGB(0xe5e5e5)
+									}
+									return core.Style{Position: core.Absolute, ZIndex: 1,
+										Width: core.Pct(100), Height: core.Pct(100), Color: col}
+								},
+							},
+						}},
 				}},
-			}},
 
-			// Color palette.
-			core.Text{Content: "颜色", Style: core.Style{FontSize: 12, Color: core.RGB(0xa3a3a3)}},
-			core.View{Class: "flex-row gap-2 flex-wrap", Children: swatchButtons(colorSig)},
+				// Preview background choice (never exported).
+				core.Text{Content: "预览背景", Style: core.Style{FontSize: 12, Color: core.RGB(0xa3a3a3)}},
+				core.View{Class: "flex-row gap-2 flex-wrap", Children: bgButtons(bgSig)},
 
-			infoRows(s),
+				// Color palette plus a hex value field.
+				core.Text{Content: "颜色", Style: core.Style{FontSize: 12, Color: core.RGB(0xa3a3a3)}},
+				core.View{Class: "flex-row gap-2 flex-wrap", Children: swatchButtons(colorSig, hexSig)},
+				ui.Input{
+					Value:       hexSig.Get,
+					OnChange:    onHex,
+					Placeholder: "自定义色值，如 #FF5722（可省略 #）",
+				},
 
-			core.Text{Content: "导出尺寸", Style: core.Style{FontSize: 12, Color: core.RGB(0xa3a3a3)}},
-			core.View{Class: "flex-row gap-2 flex-wrap", Children: sizeButtons(sizeSig)},
+				core.Text{Content: "导出尺寸", Style: core.Style{FontSize: 12, Color: core.RGB(0xa3a3a3)}},
+				core.View{Class: "flex-row gap-2 flex-wrap", Children: sizeButtons(sizeSig)},
 
-			core.View{Class: "gap-2 flex-col", Children: []core.Node{
-				ui.Button{Text: "复制 JSX", OnPress: func() {
-					jsx := exporter.JSX(s.icon.Get().Name)
-					cx.SetClipboard(jsx)
-					s.toaster.Show(ui.ToastContent{Type: ui.ToastSuccess, Title: "已复制 JSX", Description: jsx})
+				core.View{Class: "gap-2 flex-col", Children: []core.Node{
+					ui.Button{Text: "复制 SVG", OnPress: func() {
+						svg, ok := svgNow()
+						if !ok {
+							return
+						}
+						cx.SetClipboard(exporter.ApplyColor(svg, colorSig.Get()))
+						s.toaster.Show(ui.ToastContent{Type: ui.ToastSuccess, Title: "已复制 SVG"})
+					}},
+					ui.Button{Text: "导出 SVG", OnPress: func() {
+						svg, ok := svgNow()
+						if !ok {
+							return
+						}
+						saveAs(s.icon.Get().Name+".svg", "image/svg+xml", exporter.SVGBytes(svg, colorSig.Get()))
+					}},
+					ui.Button{TextFunc: func() string {
+						return fmt.Sprintf("导出 PNG（%dpx）", sizeSig.Get())
+					}, OnPress: func() {
+						svg, ok := svgNow()
+						if !ok {
+							return
+						}
+						data, err := exporter.PNG(svg, sizeSig.Get(), colorSig.Get())
+						if err != nil {
+							s.toaster.Show(ui.ToastContent{Type: ui.ToastError, Title: "导出失败", Description: err.Error()})
+							return
+						}
+						saveAs(fmt.Sprintf("%s_%dpx.png", s.icon.Get().Name, sizeSig.Get()), "image/png", data)
+					}},
 				}},
-				ui.Button{Text: "复制 import", OnPress: func() {
-					ic := s.icon.Get()
-					imp := exporter.Import(ic.Name, ic.Set)
-					cx.SetClipboard(imp)
-					s.toaster.Show(ui.ToastContent{Type: ui.ToastSuccess, Title: "已复制 import", Description: imp})
-				}},
-				ui.Button{Text: "复制 SVG", OnPress: func() {
-					svg, ok := svgNow()
-					if !ok {
-						return
-					}
-					cx.SetClipboard(exporter.ApplyColor(svg, colorSig.Get()))
-					s.toaster.Show(ui.ToastContent{Type: ui.ToastSuccess, Title: "已复制 SVG"})
-				}},
-				ui.Button{Text: "复制组件代码", OnPress: func() {
-					ic := s.icon.Get()
-					svg, ok := svgNow()
-					if !ok {
-						return
-					}
-					cx.SetClipboard(exporter.Component(ic.Name, svg))
-					s.toaster.Show(ui.ToastContent{Type: ui.ToastSuccess, Title: "已复制组件代码"})
-				}},
-				ui.Button{TextFunc: func() string {
-					return fmt.Sprintf("复制 PNG（%dpx）", sizeSig.Get())
-				}, OnPress: func() {
-					svg, ok := svgNow()
-					if !ok {
-						return
-					}
-					data, err := exporter.PNG(svg, sizeSig.Get(), colorSig.Get())
-					if err != nil {
-						s.toaster.Show(ui.ToastContent{Type: ui.ToastError, Title: "复制失败", Description: err.Error()})
-						return
-					}
-					cx.SetClipboardImage(data)
-					s.toaster.Show(ui.ToastContent{Type: ui.ToastSuccess, Title: "已复制 PNG"})
-				}},
-				ui.Button{Text: "导出 SVG", OnPress: func() {
-					svg, ok := svgNow()
-					if !ok {
-						return
-					}
-					saveAs(s.icon.Get().Name+".svg", "image/svg+xml", exporter.SVGBytes(svg, colorSig.Get()))
-				}},
-				ui.Button{TextFunc: func() string {
-					return fmt.Sprintf("导出 PNG（%dpx）", sizeSig.Get())
-				}, OnPress: func() {
-					svg, ok := svgNow()
-					if !ok {
-						return
-					}
-					data, err := exporter.PNG(svg, sizeSig.Get(), colorSig.Get())
-					if err != nil {
-						s.toaster.Show(ui.ToastContent{Type: ui.ToastError, Title: "导出失败", Description: err.Error()})
-						return
-					}
-					saveAs(fmt.Sprintf("%s_%dpx.png", s.icon.Get().Name, sizeSig.Get()), "image/png", data)
-				}},
-			}},
-		}},
+
+				infoRows(s),
+			},
+		},
 	}}
 }
 
 // swatchButtons renders the palette as small pressable color chips with the
-// selected one outlined.
-func swatchButtons(color *core.Signal[string]) []core.Node {
+// selected one outlined; picking one also syncs the hex field.
+func swatchButtons(color, hex *core.Signal[string]) []core.Node {
 	out := make([]core.Node, 0, len(paletteColors))
 	for _, c := range paletteColors {
 		c := c
@@ -201,8 +223,11 @@ func swatchButtons(color *core.Signal[string]) []core.Node {
 			continue
 		}
 		out = append(out, ui.Press{
-			OnPress: func() { color.Set(c) },
-			Label:   c,
+			OnPress: func() {
+				color.Set(c)
+				hex.Set(c)
+			},
+			Label: c,
 			Style: core.Style{Width: core.Pt(24), Height: core.Pt(24), CornerRadius: 6,
 				Background: face, BorderWidth: 1, BorderColor: core.RGB(0x525252)},
 			StyleFunc: func() core.Style {
@@ -214,6 +239,45 @@ func swatchButtons(color *core.Signal[string]) []core.Node {
 		})
 	}
 	return out
+}
+
+// bgButtons renders the preview-background choices (transparent / black /
+// white) with the selected one highlighted.
+func bgButtons(bg *core.Signal[string]) []core.Node {
+	out := make([]core.Node, 0, len(bgOptions))
+	for _, opt := range bgOptions {
+		opt := opt
+		out = append(out, ui.Press{
+			OnPress: func() { bg.Set(opt.Value) },
+			Label:   opt.Label,
+			Style: core.Style{Padding: core.Symmetric(4, 10), CornerRadius: 6,
+				Background: core.RGB(0x262626), FontSize: 12},
+			StyleFunc: func() core.Style {
+				if bg.Get() == opt.Value {
+					return core.Style{Background: core.RGB(0x3f3f46), Color: core.RGB(0xffffff)}
+				}
+				return core.Style{}
+			},
+			Children: []core.Node{core.Text{Content: opt.Label}},
+		})
+	}
+	return out
+}
+
+// hexColorRe matches a 6-digit hex color with an optional leading #.
+var hexColorRe = regexp.MustCompile(`^#?[0-9A-Fa-f]{6}$`)
+
+// normalizeHex canonicalizes typed input to #RRGGBB, or returns "" when it is
+// not a valid 6-digit hex color.
+func normalizeHex(v string) string {
+	v = strings.TrimSpace(v)
+	if !hexColorRe.MatchString(v) {
+		return ""
+	}
+	if !strings.HasPrefix(v, "#") {
+		v = "#" + v
+	}
+	return strings.ToUpper(v)
 }
 
 func infoRows(s detailState) core.Node {

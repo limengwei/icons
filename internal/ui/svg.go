@@ -2,6 +2,7 @@ package ui
 
 import (
 	"container/list"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -13,6 +14,24 @@ import (
 // blankSVG is returned when an icon cannot be served, so a cell always has a
 // valid document to draw.
 var blankSVG = core.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"></svg>`))
+
+// previewChecker is the transparency checkerboard behind the detail-panel
+// preview: alternating dark/light gray squares, 16pt each, 224pt overall.
+var previewChecker = func() *core.SVG {
+	const n, cell = 14, 16
+	var b strings.Builder
+	b.WriteString(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 224 224">`)
+	b.WriteString(`<rect width="224" height="224" fill="#242429"/>`)
+	for y := 0; y < n; y++ {
+		for x := 0; x < n; x++ {
+			if (x+y)%2 == 0 {
+				fmt.Fprintf(&b, `<rect x="%d" y="%d" width="%d" height="%d" fill="#313136"/>`, x*cell, y*cell, cell, cell)
+			}
+		}
+	}
+	b.WriteString(`</svg>`)
+	return core.MustParseSVG([]byte(b.String()))
+}()
 
 // withCurrentColor injects fill="currentColor" on the root <svg> tag when it
 // carries no fill of its own, so core.Icon tints the drawing with the text
