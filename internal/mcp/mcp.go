@@ -25,6 +25,53 @@ const (
 	pngDefaultSize = 256
 )
 
+// ParamDoc describes one tool parameter for display in the settings panel.
+type ParamDoc struct{ Name, Desc string }
+
+// ToolDoc describes one MCP tool for display in the settings panel.
+type ToolDoc struct {
+	Name   string
+	Desc   string
+	Params []ParamDoc
+}
+
+// ToolsDoc documents every tool the server exposes, mirroring the
+// registrations in New.
+var ToolsDoc = []ToolDoc{
+	{
+		Name:   "list_sets",
+		Desc:   "列出所有图标集（如 fa6、ri、tb）、图标总数与 react-icons 版本。",
+		Params: nil,
+	},
+	{
+		Name: "search_icons",
+		Desc: "按关键词搜索图标（匹配图标名与关键词），可按图标集过滤。最多返回 100 条，total 为未截断的命中总数。",
+		Params: []ParamDoc{
+			{Name: "query", Desc: "搜索关键词，如 beer"},
+			{Name: "set", Desc: "可选，按图标集 id 过滤，如 fa6"},
+		},
+	},
+	{
+		Name: "get_icon_svg",
+		Desc: "获取一个图标的原始 SVG 标记，可选注入颜色到根 svg 标签的 fill。",
+		Params: []ParamDoc{
+			{Name: "set", Desc: "图标集 id，如 fa6"},
+			{Name: "name", Desc: "图标名，如 FaBeer"},
+			{Name: "color", Desc: "可选，CSS 颜色注入 fill，如 #ff0000"},
+		},
+	},
+	{
+		Name: "export_icon_png",
+		Desc: "把图标渲染为 PNG 并以 base64 返回，可指定像素尺寸（默认 256）与颜色。",
+		Params: []ParamDoc{
+			{Name: "set", Desc: "图标集 id，如 fa6"},
+			{Name: "name", Desc: "图标名，如 FaBeer"},
+			{Name: "size", Desc: "可选，PNG 像素尺寸，默认 256"},
+			{Name: "color", Desc: "可选，CSS 颜色，如 #ff0000"},
+		},
+	},
+}
+
 // New builds the MCP server with all tools registered. ds may be nil, in
 // which case every tool reports the dataset as unavailable.
 func New(ds *dataset.Dataset) *mcp.Server {

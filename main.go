@@ -4,6 +4,7 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 
@@ -16,6 +17,9 @@ import (
 	"reacticons/internal/settings"
 	"reacticons/internal/ui"
 )
+
+//go:embed assets/IconWindows.png
+var trayIcon []byte
 
 func main() {
 	ds, dsErr := dataset.Open()
@@ -47,7 +51,7 @@ func main() {
 	}()
 
 	nsgo.Run(func(app *core.Scope) {
-		desktop.OpenWindow(app, desktop.WindowOptions{
+		win := desktop.OpenWindow(app, desktop.WindowOptions{
 			Title: "icons · react-icons 图标库", Width: 1280, Height: 800, Key: "main",
 		}, func(cx *core.Scope) core.Node {
 			if ds == nil {
@@ -56,6 +60,25 @@ func main() {
 				}}
 			}
 			return ui.Main(cx, &ui.Deps{DS: ds, Port: port})
+		})
+
+		// Closing the window hides it to the tray instead of quitting, so the
+		// embedded MCP server keeps serving; the tray menu shows or quits.
+		win.OnClosing(app, func(c *core.WindowClosing) {
+			c.Cancel()
+			win.Hide()
+		})
+		desktop.NewTray(app, desktop.TrayOptions{
+			Icon:    trayIcon,
+			Tooltip: fmt.Sprintf("icons · react-icons 图标库 · MCP :%d", port),
+			OnClick: win.Show,
+			Menu: func() []core.MenuItem {
+				return []core.MenuItem{
+					{Label: "显示窗口", OnSelect: win.Show},
+					{Separator: true},
+					{Label: "退出", OnSelect: app.Quit},
+				}
+			},
 		})
 	}, nsgo.Appearance(core.AppearanceDark))
 }
