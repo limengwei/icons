@@ -309,10 +309,6 @@ func infoRows(s detailState) core.Node {
 			}
 			return ""
 		}, value),
-		row("import 语句", func() string {
-			ic := s.icon.Get()
-			return exporter.Import(ic.Name, ic.Set)
-		}, core.Style{FontSize: 11, FontFamily: core.FontMonospace, TextOverflow: core.EllipsizeTail, Color: core.RGB(0xe5e5e5)}),
 	}}
 }
 

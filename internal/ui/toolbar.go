@@ -30,7 +30,7 @@ func toolbar(cx *core.Scope, s toolbarState) core.Node {
 			OnPress: s.onSettings,
 			Label:   "MCP 设置",
 			Style: core.Style{Padding: core.Symmetric(6, 12), CornerRadius: 6,
-				Background: core.RGB(0x262626), Gap: 6,
+				Background: core.RGB(0x262626), Direction: core.Row, Gap: 6,
 				AlignItems: core.AlignCenter, JustifyContent: core.JustifyCenter},
 			StyleFunc: func() core.Style {
 				return core.Style{Hover: &core.Style{Background: core.RGB(0x2a2a2e)}}
