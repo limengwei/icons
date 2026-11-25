@@ -23,11 +23,11 @@ func TestOpen(t *testing.T) {
 	if got := d.Version(); got != "5.7.0" {
 		t.Errorf("Version() = %q, want %q", got, "5.7.0")
 	}
-	if got := len(d.Sets()); got != 31 {
-		t.Errorf("len(Sets()) = %d, want 31", got)
+	if got := len(d.Sets()); got != 38 {
+		t.Errorf("len(Sets()) = %d, want 38", got)
 	}
-	if got := d.Total(); got != 50934 {
-		t.Errorf("Total() = %d, want 50934", got)
+	if got := d.Total(); got != 73552 {
+		t.Errorf("Total() = %d, want 73552", got)
 	}
 	s, ok := d.Set("fa6")
 	if !ok {
@@ -36,8 +36,32 @@ func TestOpen(t *testing.T) {
 	if s.Count != 2058 {
 		t.Errorf("fa6 Count = %d, want 2058", s.Count)
 	}
+	if s.Source != "react-icons" {
+		t.Errorf("fa6 Source = %q, want react-icons", s.Source)
+	}
+	solar, ok := d.Set("solar")
+	if !ok {
+		t.Fatal(`Set("solar") not found`)
+	}
+	if solar.Count != 9848 {
+		t.Errorf("solar Count = %d, want 9848", solar.Count)
+	}
+	if solar.Source != "iconify" {
+		t.Errorf("solar Source = %q, want iconify", solar.Source)
+	}
 	if _, ok := d.Set("nope"); ok {
 		t.Error(`Set("nope") reported found`)
+	}
+
+	srcs := d.Sources()
+	if len(srcs) != 2 {
+		t.Fatalf("len(Sources()) = %d, want 2: %+v", len(srcs), srcs)
+	}
+	if srcs[0].Name != "react-icons" || srcs[0].Version != "5.7.0" {
+		t.Errorf("Sources()[0] = %+v, want react-icons 5.7.0", srcs[0])
+	}
+	if srcs[1].Name != "iconify" {
+		t.Errorf("Sources()[1] = %+v, want iconify", srcs[1])
 	}
 }
 
@@ -53,6 +77,9 @@ func TestSearch(t *testing.T) {
 	}
 	if !containsIcon(d, "youtube", "", "FaYoutube") {
 		t.Error(`Search("youtube","") missing FaYoutube`)
+	}
+	if !containsIcon(d, "home", "solar", "home-bold-duotone") {
+		t.Error(`Search("home","solar") missing solar home-bold-duotone`)
 	}
 
 	fa6 := d.Search("", "fa6")
@@ -103,6 +130,15 @@ func TestGetSVG(t *testing.T) {
 
 	if _, err := d.GetSVG("go", "GoZap"); err != nil { // second set: lazy load
 		t.Fatalf(`GetSVG("go","GoZap") error = %v`, err)
+	}
+
+	// Iconify icons are full documents with an explicit viewBox.
+	svg, err = d.GetSVG("solar", "home-bold-duotone")
+	if err != nil {
+		t.Fatalf(`GetSVG("solar","home-bold-duotone") error = %v`, err)
+	}
+	if !strings.Contains(svg, `viewBox="0 0 24 24"`) {
+		t.Errorf("solar SVG missing viewBox: %.80s", svg)
 	}
 }
 
