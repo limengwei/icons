@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-基于 <a href="https://github.com/react-icons/react-icons">react-icons</a> 的桌面图标浏览器与检索工具——31 个图标集、50,934 个矢量图标，全部内嵌于单个可执行文件。<br>
+基于 <a href="https://github.com/react-icons/react-icons">react-icons</a> 与 <a href="https://iconify.design/">Iconify</a> 精选集合的桌面图标浏览器与检索工具——38 个图标集、73,552 个矢量图标，全部内嵌于单个可执行文件。<br>
 内置 MCP 服务器，可接入 AI 助手使用。
 </p>
 
@@ -28,7 +28,7 @@
 
 - **图标浏览** — 虚拟滚动网格 + 矢量渲染（任意缩放与 DPI 下清晰）；全部图标编译进二进制，无需下载，无首次部署
 - **即时搜索** — 图标名与集合关键词的防抖子串搜索；结果超过 10,000 行时截断并在状态栏提示
-- **集合侧栏** — 全部 31 个图标集（Font Awesome 6、Material Design、Tabler、Phosphor、Grommet 等）及实时数量
+- **集合侧栏** — 全部 38 个图标集（Font Awesome 6、Material Design、Tabler、Phosphor，以及 Iconify 精选的 Solar、HugeIcons、Iconoir、Fluent Color 等）及实时数量
 - **详情与导出** — 棋盘格放大预览、SVG 一键复制、任意尺寸与颜色的 PNG 导出与剪贴板复制
 - **MCP 服务** — 内嵌 MCP 服务器（stdio + HTTP），供 AI 工具检索图标、获取 SVG、渲染 PNG
 - **托盘常驻** — 关闭窗口最小化到系统托盘，MCP 服务后台继续运行；TCP 端口锁保证单实例
@@ -39,7 +39,7 @@
 |----|------|
 | 语言 | Go |
 | 桌面框架 | [nsgo](https://github.com/nsgo-dev/nsgo)（暗色外观、托盘） |
-| 数据集 | [react-icons](https://github.com/react-icons/react-icons) v5.7.0，内嵌（按集合 gzip JSON） |
+| 数据集 | [react-icons](https://github.com/react-icons/react-icons) v5.7.0 + [Iconify](https://iconify.design/) 精选集合（2026-11-25 抓取），内嵌（按集合 gzip JSON） |
 | MCP | [modelcontextprotocol/go-sdk](https://github.com/modelcontextprotocol/go-sdk) |
 
 ## MCP 集成
@@ -52,7 +52,7 @@
 
 | 工具 | 说明 |
 |------|------|
-| `list_sets` | 列出所有图标集（fa6、ri、tb 等）、图标总数与 react-icons 版本 |
+| `list_sets` | 列出所有图标集（fa6、ri、tb、solar 等）及数据来源（react-icons / iconify）、图标总数 |
 | `search_icons` | 按关键词搜索图标（图标名 + 集合关键词），可按集合过滤；最多返回 100 条，附未截断总数 |
 | `get_icon_svg` | 获取图标原始 SVG 标记，可选注入 CSS 颜色到根 `fill` |
 | `export_icon_png` | 渲染图标为 PNG（base64 返回），可指定尺寸（默认 256）与颜色 |
@@ -81,9 +81,19 @@ go test ./internal/...
 
 纯 `go build` 也可用；图标资源来自 `rsrc_windows_amd64.syso`。
 
+### 重建内嵌数据集
+
+数据再生成在本地手动执行（`data/` 不入库）：
+
+```bash
+go run ./cmd/extract-svg     # react-icons npm 包 -> data/package/{set}/*.svg（需手工解压 npm 包）
+go run ./cmd/fetch-iconify   # 下载精选 Iconify 集合 -> data/iconify/（可用 -sets 覆盖清单）
+go run ./cmd/prepare         # 合并两源 -> internal/dataset/data/
+```
+
 Windows CI 每次推送通过 `go tool nsgo build` 构建 NSIS 安装包，并在 `v*` 标签上发布（见 [.github/workflows/build-windows.yml](.github/workflows/build-windows.yml)）。
 
 ## 许可
 
 - 代码：[MIT](LICENSE) © 2026 limengwei
-- 图标：react-icons 各集合遵循各自许可（MIT / CC BY / SIL OFL / Apache 2.0，应用内「设置 → 数据来源」可查看集合列表）
+- 图标：react-icons 与 Iconify 各集合遵循各自许可（MIT / CC BY / CC0 / SIL OFL / Apache 2.0，应用内「设置 → 数据来源」可查看集合列表）

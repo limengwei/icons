@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-A desktop browser and search tool for the entire <a href="https://github.com/react-icons/react-icons">react-icons</a> library — 50,934 vector icons across 31 sets, fully embedded in a single executable.<br>
+A desktop browser and search tool for <a href="https://github.com/react-icons/react-icons">react-icons</a> plus curated <a href="https://iconify.design/">Iconify</a> collections — 73,552 vector icons across 38 sets, fully embedded in a single executable.<br>
 Built-in MCP server for AI assistant integration.
 </p>
 
@@ -28,7 +28,7 @@ Built-in MCP server for AI assistant integration.
 
 - **Icon Browsing** — Virtual-scrolling grid with vector rendering (sharp at any size/DPI); all icons are compiled into the binary, no downloads, no first-launch setup
 - **Instant Search** — Debounced substring search over icon names and set keywords, with results capped and hinted past 10,000 rows
-- **Set Sidebar** — All 31 icon sets (Font Awesome 6, Material Design, Tabler, Phosphor, Grommet, …) with live counts
+- **Set Sidebar** — All 38 icon sets (Font Awesome 6, Material Design, Tabler, Phosphor, plus curated Iconify sets Solar, HugeIcons, Iconoir, Fluent Color, …) with live counts
 - **Detail & Export** — Zoomed preview on a checkerboard, one-click SVG copy, PNG export and clipboard copy at any size and color
 - **MCP Server** — Embedded MCP server (stdio + HTTP) for AI tools to search, fetch SVG and render PNG icons
 - **Tray Resident** — Closing the window minimizes to the system tray; the MCP server keeps running. Single instance via a TCP port lock
@@ -39,7 +39,7 @@ Built-in MCP server for AI assistant integration.
 |-------|-----------|
 | Language | Go |
 | Desktop Framework | [nsgo](https://github.com/nsgo-dev/nsgo) (dark appearance, tray) |
-| Dataset | [react-icons](https://github.com/react-icons/react-icons) v5.7.0, embedded (gzip JSON per set) |
+| Dataset | [react-icons](https://github.com/react-icons/react-icons) v5.7.0 + curated [Iconify](https://iconify.design/) collections (fetched 2026-11-25), embedded (gzip JSON per set) |
 | MCP | [modelcontextprotocol/go-sdk](https://github.com/modelcontextprotocol/go-sdk) |
 
 ## MCP Integration
@@ -52,7 +52,7 @@ The embedded MCP HTTP server starts automatically (default port 9393, changeable
 
 | Tool | Description |
 |------|-------------|
-| `list_sets` | List all icon sets (fa6, ri, tb, …) with icon counts and the react-icons version |
+| `list_sets` | List all icon sets (fa6, ri, tb, solar, …) with counts and data sources (react-icons / iconify) |
 | `search_icons` | Search icons by keyword (name + set keywords), optionally filtered by set; returns up to 100 with the total count |
 | `get_icon_svg` | Get an icon's raw SVG markup, optionally injecting a CSS color into the root `fill` |
 | `export_icon_png` | Render an icon to PNG (base64), custom size (default 256) and color |
@@ -81,9 +81,19 @@ go test ./internal/...
 
 Plain `go build` also works; the icon resource comes from `rsrc_windows_amd64.syso`.
 
+### Rebuilding the embedded dataset
+
+Data regeneration is a local, manual step (`data/` is not committed):
+
+```bash
+go run ./cmd/extract-svg     # react-icons npm package -> data/package/{set}/*.svg (npm package unpacked by hand)
+go run ./cmd/fetch-iconify   # download curated Iconify collections -> data/iconify/ (-sets overrides the list)
+go run ./cmd/prepare         # merge both sources -> internal/dataset/data/
+```
+
 Windows CI builds an NSIS installer via `go tool nsgo build` on every push and publishes it on `v*` tags (see [.github/workflows/build-windows.yml](.github/workflows/build-windows.yml)).
 
 ## License
 
 - Code: [MIT](LICENSE) © 2026 limengwei
-- Icons: each react-icons set carries its own license (MIT / CC BY / SIL OFL / Apache 2.0 — see the set list in-app under *Settings → Data source*)
+- Icons: each react-icons and Iconify set carries its own license (MIT / CC BY / CC0 / SIL OFL / Apache 2.0 — see the set list in-app under *Settings → Data source*)

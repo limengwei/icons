@@ -1,6 +1,6 @@
 // Command reacticons is icons: a desktop browser over the react-icons icon
-// library, with an embedded MCP server for external clients. Run with --mcp
-// for a standalone stdio MCP server.
+// library plus curated Iconify collections, with an embedded MCP server for
+// external clients. Run with --mcp for a standalone stdio MCP server.
 package main
 
 import (
