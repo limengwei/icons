@@ -26,6 +26,13 @@ type SetInfo struct {
 	ProjectURL string
 	License    string
 	LicenseURL string
+	Source     string // "react-icons" or "iconify"
+}
+
+// SourceInfo describes one data source bundled into the dataset.
+type SourceInfo struct {
+	Name    string // "react-icons" or "iconify"
+	Version string // package version / fetch date
 }
 
 // Icon is one searchable icon entry.
@@ -38,6 +45,7 @@ type Icon struct {
 // Dataset is the in-memory icon index. It is safe for concurrent use.
 type Dataset struct {
 	version string
+	sources []SourceInfo
 	sets    []SetInfo
 	setByID map[string]SetInfo
 	icons   []Icon
@@ -47,9 +55,15 @@ type Dataset struct {
 }
 
 type indexFile struct {
-	Version string      `json:"version"`
-	Sets    []indexSet  `json:"sets"`
-	Icons   []indexIcon `json:"icons"`
+	Version string        `json:"version"`
+	Sources []indexSource `json:"sources"`
+	Sets    []indexSet    `json:"sets"`
+	Icons   []indexIcon   `json:"icons"`
+}
+
+type indexSource struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
 }
 
 type indexSet struct {
@@ -58,6 +72,7 @@ type indexSet struct {
 	ProjectURL string `json:"projectUrl"`
 	License    string `json:"license"`
 	LicenseURL string `json:"licenseUrl"`
+	Src        string `json:"src,omitempty"`
 }
 
 type indexIcon struct {
@@ -92,7 +107,16 @@ func Open() (*Dataset, error) {
 			ProjectURL: s.ProjectURL,
 			License:    s.License,
 			LicenseURL: s.LicenseURL,
+			Source:     s.Src,
 		}
+	}
+	if len(idx.Sources) > 0 {
+		d.sources = make([]SourceInfo, len(idx.Sources))
+		for i, s := range idx.Sources {
+			d.sources[i] = SourceInfo{Name: s.Name, Version: s.Version}
+		}
+	} else {
+		d.sources = []SourceInfo{{Name: "react-icons", Version: idx.Version}}
 	}
 
 	d.icons = make([]Icon, len(idx.Icons))
@@ -115,6 +139,10 @@ func Open() (*Dataset, error) {
 
 // Version returns the react-icons version of the bundled data.
 func (d *Dataset) Version() string { return d.version }
+
+// Sources returns the metadata of every bundled data source, in dataset
+// order (react-icons first).
+func (d *Dataset) Sources() []SourceInfo { return d.sources }
 
 // Sets returns all sets in manifest order.
 func (d *Dataset) Sets() []SetInfo { return d.sets }
