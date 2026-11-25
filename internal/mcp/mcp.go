@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -40,7 +41,7 @@ type ToolDoc struct {
 var ToolsDoc = []ToolDoc{
 	{
 		Name:   "list_sets",
-		Desc:   "列出所有图标集（如 fa6、ri、tb）、图标总数与 react-icons 版本。",
+		Desc:   "列出所有图标集（如 fa6、ri、tb、solar）、图标总数与数据来源版本（react-icons / Iconify）。",
 		Params: nil,
 	},
 	{
@@ -79,7 +80,7 @@ func New(ds *dataset.Dataset) *mcp.Server {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "list_sets",
-		Description: "列出所有图标集（如 fa6、ri、tb）、图标总数与 react-icons 版本。",
+		Description: "列出所有图标集（如 fa6、ri、tb、solar）、图标总数与数据来源版本（react-icons / Iconify）。",
 	}, listSets(ds))
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -107,12 +108,19 @@ type setSummary struct {
 	License    string `json:"license" jsonschema:"许可证名称"`
 	ProjectURL string `json:"projectUrl" jsonschema:"项目主页"`
 	LicenseURL string `json:"licenseUrl" jsonschema:"许可证链接"`
+	Source     string `json:"source" jsonschema:"数据来源：react-icons 或 iconify"`
+}
+
+type sourceSummary struct {
+	Name    string `json:"name" jsonschema:"数据来源名，如 react-icons、iconify"`
+	Version string `json:"version" jsonschema:"来源版本：react-icons 为包版本，iconify 为抓取日期"`
 }
 
 type listSetsResult struct {
-	Version string       `json:"version" jsonschema:"react-icons 数据版本，如 5.7.0"`
-	Total   int          `json:"total" jsonschema:"全部图标总数"`
-	Sets    []setSummary `json:"sets" jsonschema:"图标集列表"`
+	Version string           `json:"version" jsonschema:"react-icons 数据版本，如 5.7.0"`
+	Sources []sourceSummary  `json:"sources" jsonschema:"全部数据来源及版本"`
+	Total   int              `json:"total" jsonschema:"全部图标总数"`
+	Sets    []setSummary     `json:"sets" jsonschema:"图标集列表"`
 }
 
 func listSets(ds *dataset.Dataset) func(context.Context, *mcp.CallToolRequest, struct{}) (*mcp.CallToolResult, listSetsResult, error) {
@@ -122,13 +130,18 @@ func listSets(ds *dataset.Dataset) func(context.Context, *mcp.CallToolRequest, s
 		}
 		res := listSetsResult{
 			Version: ds.Version(),
+			Sources: make([]sourceSummary, 0, 2),
 			Total:   ds.Total(),
 			Sets:    make([]setSummary, 0, len(ds.Sets())),
+		}
+		for _, s := range ds.Sources() {
+			res.Sources = append(res.Sources, sourceSummary{Name: s.Name, Version: s.Version})
 		}
 		for _, s := range ds.Sets() {
 			res.Sets = append(res.Sets, setSummary{
 				ID: s.ID, Name: s.Name, Count: s.Count,
 				License: s.License, ProjectURL: s.ProjectURL, LicenseURL: s.LicenseURL,
+				Source: s.Source,
 			})
 		}
 		return nil, res, nil
@@ -265,7 +278,11 @@ func ServeStdio(ds *dataset.Dataset) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 	if ds != nil {
-		fmt.Fprintf(os.Stderr, "icons MCP (stdio): %d icons, react-icons v%s\n", ds.Total(), ds.Version())
+		var srcs []string
+		for _, s := range ds.Sources() {
+			srcs = append(srcs, s.Name+" "+s.Version)
+		}
+		fmt.Fprintf(os.Stderr, "icons MCP (stdio): %d icons, %s\n", ds.Total(), strings.Join(srcs, ", "))
 	}
 	return New(ds).Run(ctx, &mcp.StdioTransport{})
 }
