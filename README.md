@@ -7,6 +7,11 @@
 <p align="center">中文 | <a href="README_EN.md">English</a></p>
 
 <p align="center">
+  <a href="https://github.com/limengwei/icons/releases/latest"><img src="https://img.shields.io/github/v/release/limengwei/icons?label=%E6%9C%80%E6%96%B0%E7%89%88&logo=github" alt="最新版" /></a>
+  <a href="https://github.com/limengwei/icons/releases"><img src="https://img.shields.io/github/downloads/limengwei/icons/total?label=%E4%B8%8B%E8%BD%BD&logo=github" alt="下载量" /></a>
+</p>
+
+<p align="center">
 基于 <a href="https://github.com/react-icons/react-icons">react-icons</a> 的桌面图标浏览器与检索工具——31 个图标集、50,934 个矢量图标，全部内嵌于单个可执行文件。<br>
 内置 MCP 服务器，可接入 AI 助手使用。
 </p>
