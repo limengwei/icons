@@ -2,7 +2,7 @@
 # 纯 go build 会忽略此文件）。
 name: icons
 id: limengwei.mindspace.icons
-version: 1.0.0
+version: 1.1.0
 copyright: © 2026 icons
 appearance: dark
 
