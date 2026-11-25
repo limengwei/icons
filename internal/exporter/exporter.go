@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"reacticons/internal/importer"
 	"reacticons/internal/render"
 )
 
@@ -52,15 +53,41 @@ func PNG(svg string, size int, color string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// JSX returns the JSX usage snippet for an icon, e.g. "<FaBeer />".
-func JSX(name string) string {
+// JSX returns the JSX usage snippet for an icon: "<FaBeer />" for react-icons
+// sets, "<Icon icon={homeMinimal} />" for iconify sets.
+func JSX(name, source string) string {
+	if source == importer.SourceIconify {
+		return "<Icon icon={" + iconifyIdent(name) + "} />"
+	}
 	return "<" + name + " />"
 }
 
-// Import returns the react-icons import snippet, e.g.
-// `import { FaBeer } from "react-icons/fa6"`.
-func Import(name, set string) string {
+// Import returns the import snippet for an icon: the react-icons import for
+// react-icons sets, the @iconify data import plus the Icon component for
+// iconify sets.
+func Import(name, set, source string) string {
+	if source == importer.SourceIconify {
+		return `import ` + iconifyIdent(name) + ` from "@iconify-icons/` + set + `/` + name + `";` + "\n" +
+			`import { Icon } from "@iconify/react"`
+	}
 	return `import { ` + name + ` } from "react-icons/` + set + `"`
+}
+
+// iconifyIdent converts a kebab-case icon name into a camelCase identifier,
+// e.g. "home-minimal" -> "homeMinimal".
+func iconifyIdent(name string) string {
+	var b strings.Builder
+	for _, part := range strings.Split(name, "-") {
+		if part == "" {
+			continue
+		}
+		if b.Len() == 0 {
+			b.WriteString(part)
+			continue
+		}
+		b.WriteString(strings.ToUpper(part[:1]) + part[1:])
+	}
+	return b.String()
 }
 
 // Component generates a standalone React component equivalent to the icon:

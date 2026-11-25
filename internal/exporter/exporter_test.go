@@ -7,6 +7,8 @@ import (
 	"image/png"
 	"strings"
 	"testing"
+
+	"reacticons/internal/importer"
 )
 
 const plainSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M0 0h1v1z"/></svg>`
@@ -102,14 +104,21 @@ func assertNRGBA(t *testing.T, img image.Image, x, y int, r, g, b uint8) {
 }
 
 func TestJSX(t *testing.T) {
-	if got := JSX("FaBeer"); got != "<FaBeer />" {
+	if got := JSX("FaBeer", importer.SourceReactIcons); got != "<FaBeer />" {
 		t.Fatalf("JSX = %q, want %q", got, "<FaBeer />")
+	}
+	if got := JSX("home-minimal", importer.SourceIconify); got != "<Icon icon={homeMinimal} />" {
+		t.Fatalf("JSX(iconify) = %q, want %q", got, "<Icon icon={homeMinimal} />")
 	}
 }
 
 func TestImport(t *testing.T) {
-	if got := Import("FaBeer", "fa6"); got != `import { FaBeer } from "react-icons/fa6"` {
+	if got := Import("FaBeer", "fa6", importer.SourceReactIcons); got != `import { FaBeer } from "react-icons/fa6"` {
 		t.Fatalf("Import = %q", got)
+	}
+	want := "import homeMinimal from \"@iconify-icons/solar/home-minimal\";\nimport { Icon } from \"@iconify/react\""
+	if got := Import("home-minimal", "solar", importer.SourceIconify); got != want {
+		t.Fatalf("Import(iconify) = %q, want %q", got, want)
 	}
 }
 
