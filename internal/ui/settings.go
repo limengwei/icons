@@ -183,12 +183,8 @@ func settingsPanel(cx *core.Scope, s settingsState) core.Node {
 
 							// Read-only app information.
 							core.View{Class: "gap-2 flex-col pt-3 border-t border-neutral-800", Children: []core.Node{
-								core.Text{Content: fmt.Sprintf("数据版本：v%s", s.ds.Version()), Style: labelStyle},
 								core.Text{Content: fmt.Sprintf("集合数：%d · 图标总数：%d", len(s.ds.Sets()), s.ds.Total()), Style: labelStyle},
-								core.View{Class: "gap-1 flex-col", Children: []core.Node{
-									core.Text{Content: "数据来源", Style: core.Style{FontSize: 10, Color: core.RGB(0x737373)}},
-									core.Text{Content: "https://github.com/react-icons/react-icons", Style: core.Style{FontSize: 10, Color: core.RGB(0xa3a3a3), TextOverflow: core.EllipsizeTail}},
-								}},
+								core.View{Class: "gap-2 flex-col", Children: sourceRows(s.ds)},
 							}},
 						},
 					},
@@ -199,6 +195,39 @@ func settingsPanel(cx *core.Scope, s settingsState) core.Node {
 					}},
 				}},
 		}}
+}
+
+// sourceRows renders the "数据来源" block: one header plus, per bundled data
+// source, its name, version and upstream URL. When the dataset failed to
+// load, only an "不可用" note is shown.
+func sourceRows(ds *dataset.Dataset) []core.Node {
+	nameStyle := core.Style{FontSize: 12}
+	urlStyle := core.Style{FontSize: 10, Color: core.RGB(0xa3a3a3), TextOverflow: core.EllipsizeTail}
+	if ds == nil {
+		return []core.Node{
+			core.Text{Content: "数据来源", Style: core.Style{FontSize: 10, Color: core.RGB(0x737373)}},
+			core.Text{Content: "不可用", Style: nameStyle},
+		}
+	}
+	rows := []core.Node{core.Text{Content: "数据来源", Style: core.Style{FontSize: 10, Color: core.RGB(0x737373)}}}
+	for _, src := range ds.Sources() {
+		rows = append(rows,
+			core.View{Class: "gap-1 flex-col", Children: []core.Node{
+				core.Text{Content: fmt.Sprintf("%s %s", src.Name, src.Version), Style: nameStyle},
+				core.Text{Content: sourceURL(src.Name), Style: urlStyle},
+			}})
+	}
+	return rows
+}
+
+// sourceURL maps a data source name to its upstream project URL.
+func sourceURL(name string) string {
+	switch name {
+	case "iconify":
+		return "https://iconify.design/"
+	default:
+		return "https://github.com/react-icons/react-icons"
+	}
 }
 
 // mcpConfigLines renders the example MCP client config, one monospace Text
