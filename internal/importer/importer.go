@@ -12,13 +12,14 @@ import (
 	"unicode"
 )
 
-// Set describes one icon collection from the react-icons manifest.
+// Set describes one icon collection from either data source manifest.
 type Set struct {
 	ID         string `json:"id"`
 	Name       string `json:"name"`
 	ProjectURL string `json:"projectUrl"`
 	License    string `json:"license"`
 	LicenseURL string `json:"licenseUrl"`
+	Src        string `json:"src,omitempty"` // SourceReactIcons (default) or SourceIconify
 }
 
 // ParseManifest parses the contents of an iconsManifest.js file and returns
@@ -46,6 +47,9 @@ func ParseManifest(src string) ([]Set, error) {
 	for _, s := range all {
 		if s.ID == "lib" {
 			continue
+		}
+		if s.Src == "" {
+			s.Src = SourceReactIcons
 		}
 		sets = append(sets, s)
 	}
@@ -79,14 +83,20 @@ func matchBracket(s string, start int) (int, bool) {
 	return 0, false
 }
 
-// SplitName splits a camelCase icon name into lowercase words: a split goes
-// before each uppercase letter (keeping acronym runs such as "CSS" together)
-// and at letter-to-digit boundaries, while digits stay attached to the
-// letters that follow them ("Fa500px" -> "fa 500px").
+// SplitName splits an icon name into lowercase words: a split goes before
+// each uppercase letter (keeping acronym runs such as "CSS" together) and at
+// letter-to-digit boundaries, while digits stay attached to the letters that
+// follow them ("Fa500px" -> "fa 500px"). Hyphens, used by Iconify's
+// kebab-case names, act as word separators ("home-minimal" -> "home
+// minimal").
 func SplitName(name string) string {
 	var b strings.Builder
 	b.Grow(len(name) + 8)
 	for i := 0; i < len(name); i++ {
+		if name[i] == '-' {
+			b.WriteByte(' ')
+			continue
+		}
 		if i > 0 && splitBefore(name, i) {
 			b.WriteByte(' ')
 		}

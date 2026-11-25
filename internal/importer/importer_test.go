@@ -46,6 +46,7 @@ func TestParseManifest(t *testing.T) {
 			ProjectURL: "https://circumicons.com/",
 			License:    "MPL-2.0 license",
 			LicenseURL: "https://github.com/Klarr-Agency/Circum-Icons/blob/main/LICENSE",
+			Src:        SourceReactIcons,
 		},
 		{
 			ID:         "fa",
@@ -53,6 +54,7 @@ func TestParseManifest(t *testing.T) {
 			ProjectURL: "https://fontawesome.com/",
 			License:    "CC BY 4.0 License",
 			LicenseURL: "https://creativecommons.org/licenses/by/4.0/",
+			Src:        SourceReactIcons,
 		},
 	}
 	if !reflect.DeepEqual(sets, want) {
@@ -88,6 +90,10 @@ func TestSplitName(t *testing.T) {
 		{"SiHtml5", "si html 5"},
 		{"FaCSS3", "fa css 3"},
 		{"FaHTTPSClient", "fa https client"},
+		// Iconify kebab-case names: hyphens separate words.
+		{"home-minimal", "home minimal"},
+		{"4k-bold-duotone", "4k bold duotone"},
+		{"user--rounded", "user  rounded"},
 	}
 	for _, tt := range tests {
 		if got := SplitName(tt.name); got != tt.want {
