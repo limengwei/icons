@@ -78,14 +78,34 @@ func main() {
 	call("export_icon_png", map[string]any{"set": "go", "name": "GoZap", "size": 64}, &pr)
 	fmt.Printf("png: size=%d base64len=%d\n", pr.Size, len(pr.PNGBase64))
 
+	// Iconify-sourced set: search within it and rasterize one icon.
+	var sir struct {
+		Total int `json:"total"`
+		Icons []struct {
+			Set  string `json:"set"`
+			Name string `json:"name"`
+		} `json:"icons"`
+	}
+	call("search_icons", map[string]any{"query": "home", "set": "solar"}, &sir)
+	fmt.Printf("search solar home: total=%d first=%s/%s\n", sir.Total, sir.Icons[0].Set, sir.Icons[0].Name)
+	call("export_icon_png", map[string]any{"set": "solar", "name": sir.Icons[0].Name, "size": 64}, &pr)
+	fmt.Printf("png solar: size=%d base64len=%d\n", pr.Size, len(pr.PNGBase64))
+
 	var ls struct {
 		Version string `json:"version"`
 		Total   int    `json:"total"`
 		Sets    []struct {
-			ID string `json:"id"`
+			ID     string `json:"id"`
+			Source string `json:"source"`
 		} `json:"sets"`
 	}
 	call("list_sets", map[string]any{}, &ls)
-	fmt.Printf("sets: version=%s total=%d count=%d\n", ls.Version, ls.Total, len(ls.Sets))
+	iconifySets := 0
+	for _, s := range ls.Sets {
+		if s.Source == "iconify" {
+			iconifySets++
+		}
+	}
+	fmt.Printf("sets: version=%s total=%d count=%d iconify=%d\n", ls.Version, ls.Total, len(ls.Sets), iconifySets)
 	fmt.Println("SMOKE_OK")
 }
